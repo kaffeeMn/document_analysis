@@ -2,6 +2,10 @@ import itertools
 from corpus import CorpusLoader
 from visualization import bar_plot
 
+from evaluation import CrossValidation
+from classification import KNNClassifier
+
+from features import BagOfWords, WordListNormalizer, RelativeTermFrequencies, RelativeInverseDocumentWordFrequecies
 
 def aufgabe3():
 
@@ -65,8 +69,28 @@ def aufgabe3():
     #
     # Fuer das Verstaendnis der Implementierung der Klasse CrossValidator ist der Eclipse-
     # Debugger sehr hilfreich.
-
-    raise NotImplementedError('Implement me')
+    brown_categories = brown.categories()
+    
+    
+    n_neighbours = 1
+    metric = 'euclidean'
+    classifier = KNNClassifier(n_neighbours, metric)
+    
+    normalizer = WordListNormalizer()
+    normalized_words = normalizer.normalize_words(brown.words())
+    vocabulary = BagOfWords.most_freq_words(normalized_words[1], 500)
+    bow = BagOfWords(vocabulary)
+    cat_word_dict = {cat : [brown.words(doc) for doc in brown.fileids(categories=cat)] 
+                     for cat in brown_categories}
+    
+    n_folds = 5
+    category_bow_dict = bow.category_bow_dict(cat_word_dict)
+    cross_validator = CrossValidation(category_bow_dict=category_bow_dict, n_folds=n_folds)
+    
+    crossval_overall_result, crossval_class_results = cross_validator.validate(classifier)
+    print("ran cross validation for {}-nearest neighbour".format(n_neighbours))
+    print(crossval_overall_result)
+    print(crossval_class_results)
 
     # Bag-of-Words Weighting 
     #
@@ -87,8 +111,14 @@ def aufgabe3():
     # Begriff des "Term". Ein Term bezeichnet ein Wort aus dem Vokabular ueber
     # dem die Bag-of-Words Histogramme gebildet werden. Ein Bag-of-Words Histogramm
     # wird daher auch als Term-Vektor bezeichnet.
+    rel_category_bow_dict = {cat : RelativeTermFrequencies.weighting(category_bow_dict[cat])
+                             for cat in category_bow_dict}
 
-    raise NotImplementedError('Implement me')
+    cross_validator = CrossValidation(category_bow_dict=rel_category_bow_dict, n_folds=n_folds)
+    crossval_overall_result, crossval_class_results = cross_validator.validate(classifier)
+    print("ran cross validation for {}-nearest neighbour (relative)".format(n_neighbours))
+    print(crossval_overall_result)
+    print(crossval_class_results)
     
     # Zusaetzlich kann man noch die inverse Frequenz von Dokumenten beruecksichtigen
     # in denen ein bestimmter Term vorkommt. Diese Normalisierung wird als  
@@ -119,13 +149,22 @@ def aufgabe3():
     # Erklaeren Sie die Unterschiede in den klassenspezifischen Fehlerraten. Schauen Sie 
     # sich dazu die Verteilungen der Anzahl Woerter und Dokumente je Kategorie aus aufgabe1
     # an. In wie weit ist eine Interpretation moeglich? 
+    
+    tfidf = RelativeInverseDocumentWordFrequecies(vocabulary, cat_word_dict)
+    rel_category_bow_dict = {cat : tfidf.weighting(category_bow_dict[cat])
+                             for cat in category_bow_dict}
 
+    cross_validator = CrossValidation(category_bow_dict=rel_category_bow_dict, n_folds=n_folds)
+    crossval_overall_result, crossval_class_results = cross_validator.validate(classifier)
+    print("ran cross validation for {}-nearest neighbour (relative-inverse)".format(n_neighbours))
+    print(crossval_overall_result)
+    print(crossval_class_results)
     raise NotImplementedError('Implement me')
     
     
     # Evaluieren Sie die beste Klassifikationsleistung   
     #
-    # Ermitteln Sie nun die Parameter fuer die bester Klassifikationsleistung des 
+    # Ermitteln Sie nun die Parameter fuer die beste Klassifikationsleistung des 
     # k-naechste-Nachbarn Klassifikators auf dem Brown Corpus mit der Kreuzvalidierung.
     # Dabei wird gleichzeitig immer nur ein Parameter veraendert. Man hat eine lokal
     # optimale Parameterkonfiguration gefunden, wenn jede Aenderung eines Parameters

@@ -26,29 +26,46 @@ class CrossValidation(object):
                 muss. Optional: Falls None, wird keine Transformation durchgefuehrt.
 
         Returns:
-            Ergaenzen Sie die Dokumentation!
+            crossval_overall_result, crossval_class_results
+            Resultate der Cross-Validierung ueber alle Daten und ueber Kategorien einzelnt
         """
         if feature_transform is None:
+            # bei der identitaet wird "keine" Transformation vorgenommen
             feature_transform = IdentityFeatureTransform()
                 
         crossval_overall_list = []
         crossval_class_dict = defaultdict(list)
         for fold_index in range(self.__n_folds):
+            # Daten werden ab dem fold_index in training/ label Daten eingeteilt,
+            # ab dem fold_index-ten document wird also jedes self.__n_folds-te
+            # document in die test daten aufgenommen
             train_bow, train_labels, test_bow, test_labels = self.corpus_fold(fold_index)
+            # (statischtisches) Schaetzen auf Basis der trainings-daten
             feature_transform.estimate(train_bow, train_labels)
+            # Daten werden in einen neuen Raum transformiert
             train_feat = feature_transform.transform(train_bow)
             test_feat = feature_transform.transform(test_bow)
+            # Mathematisches Modell schaetzt auf Basis der Trainingsdaten/
+            # wird initialisiert
             classifier.estimate(train_feat, train_labels)
             estimated_test_labels = classifier.classify(test_feat)
+            # evaluieren der Schaetzung
             classifier_eval = ClassificationEvaluator(estimated_test_labels, test_labels)
+            # tuple als list abspeichern und danach in np.array convertieren?
             crossval_overall_list.append(list(classifier_eval.error_rate()))
+            # Fehler je Klassen nach Klassen in unser dict fuer alle Fehlerraten abspeichern
             crossval_class_list = classifier_eval.category_error_rates()
             for category, err, n_wrong, n_samples in crossval_class_list:
                 crossval_class_dict[category].append([err, n_wrong, n_samples])
-            
+        
+        # [[error_rate, n_wrong, n_samlpes], ...]
         crossval_overall_mat = np.array(crossval_overall_list)
+        # np.array von gewichteteten errorraten
+        # Sum([error_rate * (n_samples / all samples considered), ... ])
         crossval_overall_result = CrossValidation.__crossval_results(crossval_overall_mat)
 
+        # analog zu crossval_overall_result, jedoch mit sublisten nach Klassen sortiert
+        # [(class, cval_res), ...]
         crossval_class_results = []
         for category in sorted(crossval_class_dict.keys()):
             crossval_class_mat = np.array(crossval_class_dict[category])

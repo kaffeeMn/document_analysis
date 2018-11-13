@@ -60,7 +60,7 @@ class RelativeTermFrequencies(object):
             bow_mat: Numpy ndarray (d x t) mit *gewichteten* Bag-of-Words Frequenzen 
                 je Dokument (zeilenweise).
         """
-        raise NotImplementedError('Implement me')
+        return bow_mat / np.array([[s] for s in np.sum(bow_mat, axis=1)])
     
     def __repr__(self):
         """Ueberschreibt interne Funktion der Klasse object. Die Funktion wird
@@ -86,8 +86,20 @@ class RelativeInverseDocumentWordFrequecies(object):
                 Siehe Beschreibung des Parameters cat_word_dict in der Methode
                 BagOfWords.category_bow_dict.
         """
-        raise NotImplementedError('Implement me')
+        bow = BagOfWords(vocabulary)
+        category_bow_dict = bow.category_bow_dict(category_wordlists_dict)
+        
+        # stacking documents
+        keys = category_bow_dict.keys()
+        doc_arr = category_bow_dict[keys[0]]
+        for k in keys[1:]:
+            doc_arr = np.vstack((doc_arr, category_bow_dict[k]))
+        # count documents containing the term
+        voc_doc_count = np.sum((doc_arr>0).astype(float), axis=0)
     
+        n_docs = float(len(doc_arr))
+        # Anzahl Dokumente / Anzahl Dokumente die den jeweiligen term enthalten 
+        self.__inv_freq = np.log(n_docs / voc_doc_count)
 
     def weighting(self, bow_mat):
         """Fuehrt die Gewichtung einer Bag-of-Words Matrix durch.
@@ -100,7 +112,8 @@ class RelativeInverseDocumentWordFrequecies(object):
             bow_mat: Numpy ndarray (d x t) mit *gewichteten* Bag-of-Words Frequenzen 
                 je Dokument (zeilenweise).
         """
-        raise NotImplementedError('Implement me')
+        return RelativeTermFrequencies.weighting(bow_mat) * self.__inv_freq
+        
 
     def __repr__(self):
         """Ueberschreibt interne Funktion der Klasse object. Die Funktion wird
