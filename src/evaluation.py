@@ -152,8 +152,25 @@ class ClassificationEvaluator(object):
         # Labels
         
         self.__uneq = self.__estimated_labels != self.__groundtruth_labels
-        
+        self.__binary_result_mat = groundtruth_labels == estimated_labels
 
+#     def error_rate(self, mask=None):
+#         """Bestimmt die Fehlerrate auf den Testdaten.
+#         
+#         Params:
+#             mask: Optionale boolsche Maske, mit der eine Untermenge der Testdaten
+#                 ausgewertet werden kann. Nuetzlich fuer klassenspezifische Fehlerraten.
+#                 Bei mask=None werden alle Testdaten ausgewertet.
+#         Returns:
+#             tuple: (error_rate, n_wrong, n_samlpes)
+#             error_rate: Fehlerrate in Prozent
+#             n_wrong: Anzahl falsch klassifizierter Testbeispiele
+#             n_samples: Gesamtzahl von Testbeispielen
+#         """
+#         filtered = self.__uneq[mask]
+#         n_wrong = np.sum(filtered.astype(int))
+#         n_samples = len(filtered.reshape(-1))
+#         return 100. * (float(n_wrong) / float(n_samples)), n_wrong, n_samples        
     def error_rate(self, mask=None):
         """Bestimmt die Fehlerrate auf den Testdaten.
         
@@ -167,10 +184,17 @@ class ClassificationEvaluator(object):
             n_wrong: Anzahl falsch klassifizierter Testbeispiele
             n_samples: Gesamtzahl von Testbeispielen
         """
-        filtered = self.__uneq[mask]
-        n_wrong = np.sum(filtered.astype(int))
-        n_samples = len(filtered.reshape(-1))
-        return 100. * (float(n_wrong) / float(n_samples)), n_wrong, n_samples        
+
+        if mask is None:
+            mask = np.ones_like(self.__binary_result_mat, dtype=bool)
+        masked_binary_result_mat = self.__binary_result_mat[mask]
+        n_samples = len(masked_binary_result_mat)
+        n_correct = masked_binary_result_mat.sum()
+        n_wrong = n_samples - n_correct
+        error_rate = n_wrong / float(n_samples)
+        error_rate *= 100
+        return error_rate, n_wrong, n_samples
+
 
     def category_error_rates(self):
         """Berechnet klassenspezifische Fehlerraten

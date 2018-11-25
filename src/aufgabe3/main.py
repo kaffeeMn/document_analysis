@@ -7,6 +7,9 @@ from classification import KNNClassifier
 
 from features import BagOfWords, WordListNormalizer, RelativeTermFrequencies, RelativeInverseDocumentWordFrequecies
 
+from configurations import Configuration, ExpConfigurations
+from copy import deepcopy
+
 def aufgabe3():
 
     # ********************************** ACHTUNG **************************************
@@ -38,6 +41,7 @@ def aufgabe3():
     # Wenn etwas unklar ist, fragen Sie!     
     # *********************************************************************************
     
+    print('loading brown')
     CorpusLoader.load()
     brown = CorpusLoader.brown_corpus()
     
@@ -69,28 +73,28 @@ def aufgabe3():
     #
     # Fuer das Verstaendnis der Implementierung der Klasse CrossValidator ist der Eclipse-
     # Debugger sehr hilfreich.
-    brown_categories = brown.categories()
     
-    
-    n_neighbours = 1
-    metric = 'euclidean'
-    classifier = KNNClassifier(n_neighbours, metric)
-    
-    normalizer = WordListNormalizer()
-    normalized_words = normalizer.normalize_words(brown.words())
-    vocabulary = BagOfWords.most_freq_words(normalized_words[1], 500)
-    bow = BagOfWords(vocabulary)
-    cat_word_dict = {cat : [brown.words(doc) for doc in brown.fileids(categories=cat)] 
-                     for cat in brown_categories}
-    
-    n_folds = 5
-    category_bow_dict = bow.category_bow_dict(cat_word_dict)
-    cross_validator = CrossValidation(category_bow_dict=category_bow_dict, n_folds=n_folds)
-    
-    crossval_overall_result, crossval_class_results = cross_validator.validate(classifier)
-    print("ran cross validation for {}-nearest neighbour".format(n_neighbours))
-    print(crossval_overall_result)
-    print(crossval_class_results)
+#     brown_categories = brown.categories()
+#     
+#     n_neighbours = 1
+#     metric = 'euclidean'
+#     classifier = KNNClassifier(n_neighbours, metric)
+#       
+#     normalizer = WordListNormalizer()
+#     normalized_words = normalizer.normalize_words(brown.words())
+#     vocabulary = BagOfWords.most_freq_words(normalized_words[1], 500)
+#     bow = BagOfWords(vocabulary)
+#     cat_word_dict = {cat : [brown.words(doc) for doc in brown.fileids(categories=cat)] 
+#                      for cat in brown_categories}
+#       
+#     n_folds = 5
+#     category_bow_dict = bow.category_bow_dict(cat_word_dict)
+#     cross_validator = CrossValidation(category_bow_dict=category_bow_dict, n_folds=n_folds)
+#       
+#     crossval_overall_result, crossval_class_results = cross_validator.validate(classifier)
+#     print("ran cross validation for {}-nearest neighbour".format(n_neighbours))
+#     print(crossval_overall_result)
+#     print(crossval_class_results)
 
     # Bag-of-Words Weighting 
     #
@@ -111,14 +115,15 @@ def aufgabe3():
     # Begriff des "Term". Ein Term bezeichnet ein Wort aus dem Vokabular ueber
     # dem die Bag-of-Words Histogramme gebildet werden. Ein Bag-of-Words Histogramm
     # wird daher auch als Term-Vektor bezeichnet.
-    rel_category_bow_dict = {cat : RelativeTermFrequencies.weighting(category_bow_dict[cat])
-                             for cat in category_bow_dict}
-
-    cross_validator = CrossValidation(category_bow_dict=rel_category_bow_dict, n_folds=n_folds)
-    crossval_overall_result, crossval_class_results = cross_validator.validate(classifier)
-    print("ran cross validation for {}-nearest neighbour (relative)".format(n_neighbours))
-    print(crossval_overall_result)
-    print(crossval_class_results)
+    
+#     rel_category_bow_dict = {cat : RelativeTermFrequencies.weighting(category_bow_dict[cat])
+#                              for cat in category_bow_dict}
+#   
+#     cross_validator = CrossValidation(category_bow_dict=rel_category_bow_dict, n_folds=n_folds)
+#     crossval_overall_result, crossval_class_results = cross_validator.validate(classifier)
+#     print("ran cross validation for {}-nearest neighbour (relative)".format(n_neighbours))
+#     print(crossval_overall_result)
+#     print(crossval_class_results)
     
     # Zusaetzlich kann man noch die inverse Frequenz von Dokumenten beruecksichtigen
     # in denen ein bestimmter Term vorkommt. Diese Normalisierung wird als  
@@ -150,17 +155,16 @@ def aufgabe3():
     # sich dazu die Verteilungen der Anzahl Woerter und Dokumente je Kategorie aus aufgabe1
     # an. In wie weit ist eine Interpretation moeglich? 
     
-    tfidf = RelativeInverseDocumentWordFrequecies(vocabulary, cat_word_dict)
-    rel_category_bow_dict = {cat : tfidf.weighting(category_bow_dict[cat])
-                             for cat in category_bow_dict}
-
-    cross_validator = CrossValidation(category_bow_dict=rel_category_bow_dict, n_folds=n_folds)
-    crossval_overall_result, crossval_class_results = cross_validator.validate(classifier)
-    print("ran cross validation for {}-nearest neighbour (relative-inverse)".format(n_neighbours))
-    print(crossval_overall_result)
-    print(crossval_class_results)
-    raise NotImplementedError('Implement me')
-    
+#     tfidf = RelativeInverseDocumentWordFrequecies(vocabulary, cat_word_dict)
+#     rel_category_bow_dict = {cat : tfidf.weighting(category_bow_dict[cat])
+#                              for cat in category_bow_dict}
+#   
+#     cross_validator = CrossValidation(category_bow_dict=rel_category_bow_dict, n_folds=n_folds)
+#     crossval_overall_result, crossval_class_results = cross_validator.validate(classifier)
+#     print("ran cross validation for {}-nearest neighbour (relative-inverse)".format(n_neighbours))
+#     print(crossval_overall_result)
+#     print(crossval_class_results)
+      
     
     # Evaluieren Sie die beste Klassifikationsleistung   
     #
@@ -181,9 +185,144 @@ def aufgabe3():
     # Erklaeren Sie den Effekt aller Parameter. 
     #
     # Erklaeren Sie den Effekt zwischen Gewichtungsschema und Distanzfunktion.
-
-    raise NotImplementedError('Implement me')
-
-
+    
+    # vocabulary sizes as specified
+    voc_sizes = (100, 500, 1000, 2000)
+    # weightings as specified
+    weightings = ('abs','rel','tfidf')
+    # metrices as specified
+    dists = ("cityblock", "euclidean", "cosine")
+    # numbers of neighbours as specified
+    neighbours = (1, 2, 3, 4, 5, 6)
+    
+    # indices of best options, to keep track
+    idx_vs = 0
+    idx_wghts = 0
+    idx_dsts = 0
+    idx_nn = 0
+    
+    
+    normalizer = WordListNormalizer()
+    cat_word_dict = normalizer.category_wordlists_dict(corpus=brown)
+    # Flatten the category word lists for computing overall word frequencies
+    # The * operator expands the list/iterator to function arguments
+    # itertools.chain concatenates all its parameters to a single list
+    print 'Building Bag-of-Words vocabulary...'
+    wordlists = itertools.chain(*(cat_word_dict.itervalues()))
+    normalized_words = itertools.chain(*wordlists)
+    vocabulary = BagOfWords.most_freq_words(normalized_words)
+    
+#     print("normalizing")
+#     # normalizing
+#     normalizer = WordListNormalizer()
+#     # normalized words
+#     normalized_words = normalizer.normalize_words(brown.words())[1]
+#     print("normalized words")
+#     # normalized wordlists
+#     cat_word_dict = normalizer.category_wordlists_dict(brown)
+#     print("normalized wordlists")
+#     
+#     # initializing the vocabulary at maximum size and then taking slices
+#     vocabulary = BagOfWords.most_freq_words(normalized_words, 2000)
+    
+    
+#     print('initializing configuration')
+#     
+#     exp_config = ExpConfigurations(vocabulary ,cat_word_dict,
+#                                    voc_sizes, weightings, dists, neighbours)
+#     print(exp_config.run())
+#     for row in exp_config.__log:
+#         print(row)
+    
+    
+    config = Configuration(brown, cat_word_dict, vocabulary,
+                           voc_sizes[idx_vs], dists[idx_dsts], neighbours[idx_nn], 
+                           weightings[idx_wghts])
+    config.fit()
+    err_overall = config.eval()[0]
+     
+ 
+    # list of configuration results
+    config_table = [['voc_sizes', 'metric', 'neighbours',  'weightings','err'],
+                    [voc_sizes[idx_vs], dists[idx_dsts], neighbours[idx_nn], weightings[idx_wghts], err_overall]]
+ 
+     
+    print('calculating size')
+    # local optimum for vocabulary size
+    for idx, _ in enumerate(voc_sizes[1:]):
+        tmp_config = Configuration(brown, cat_word_dict, vocabulary,
+                                   voc_sizes[idx+1], dists[idx_dsts], neighbours[idx_nn], 
+                                   weightings[idx_wghts])
+        tmp_config.fit()
+        tmp_err = tmp_config.eval()[0]
+        if err_overall > tmp_err:
+            err_overall = deepcopy(tmp_err)
+            idx_vs = deepcopy(idx+1)
+ 
+        config_table.append([ voc_sizes[idx+1], dists[idx_dsts], neighbours[idx_nn], 
+                              weightings[idx_wghts],
+                              tmp_err ])
+    print(voc_sizes[idx_vs])
+     
+    print('calculating weights')
+    # local optimum for weighting
+    for idx, _ in enumerate(weightings[1:]):
+        tmp_config = Configuration(brown, cat_word_dict, vocabulary,
+                                   voc_sizes[idx_vs], dists[idx_dsts], neighbours[idx_nn], 
+                                   weightings[idx+1])
+        tmp_config.fit()
+        tmp_err = tmp_config.eval()[0]
+        if err_overall > tmp_err:
+            err_overall = deepcopy(tmp_err)
+            idx_wghts = deepcopy(idx+1)
+         
+        config_table.append([voc_sizes[idx_vs], dists[idx_dsts], neighbours[idx_nn], 
+                              weightings[idx+1],
+                              tmp_err ])
+    print(weightings[idx_wghts])
+     
+    print('calculating metric')
+    # local optimum for metric
+    for idx, _ in enumerate(dists[1:]):
+        tmp_config = Configuration(brown, cat_word_dict, vocabulary,
+                                   voc_sizes[idx_vs], dists[idx+1], neighbours[idx_nn], 
+                                   weightings[idx_wghts])
+        tmp_config.fit()
+        tmp_err = tmp_config.eval()[0]
+        if err_overall > tmp_err:
+            err_overall = deepcopy(tmp_err)
+            idx_dsts = deepcopy(idx+1)
+         
+        config_table.append([voc_sizes[idx_vs], dists[idx+1], neighbours[idx_nn], 
+                              weightings[idx_wghts],
+                              tmp_err])
+    print(dists[idx_dsts])
+     
+    print('calculating neighbours')
+    # local optimum for neighbours
+    for idx, _ in enumerate(neighbours[1:]):
+        tmp_config = Configuration(brown, cat_word_dict, vocabulary,
+                                   voc_sizes[idx_vs], dists[idx_dsts], neighbours[idx+1], 
+                                   weightings[idx_wghts])
+        tmp_config.fit()
+        tmp_err = tmp_config.eval()[0]
+        if err_overall > tmp_err:
+            err_overall = deepcopy(tmp_err)
+            idx_nn = deepcopy(idx+1)
+         
+        config_table.append([voc_sizes[idx_vs], dists[idx_dsts], neighbours[idx+1], 
+                              weightings[idx_wghts],
+                              tmp_err ])
+    print(neighbours[idx_nn])
+ 
+ 
+    # ideal should be 2000, relative, cityblock, 4
+    print('local optimum at\nsize: {}\nweight: {}\nmetric: {}\nneighbours: {}'.format(voc_sizes[idx_vs],
+                                                                                      weightings[idx_wghts],
+                                                                                      dists[idx_dsts], 
+                                                                                      neighbours[idx_nn]))
+    for row in config_table:
+        print(row)
+    
 if __name__ == '__main__':
     aufgabe3()

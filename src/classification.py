@@ -40,29 +40,57 @@ class KNNClassifier(object):
         self.__train_labels = train_labels
 
     def classify(self, test_samples):
+#         """Klassifiziert Test Daten.
+#          
+#         Params:
+#             test_samples: ndarray, das Merkmalsvektoren zeilenweise enthaelt (d x t).
+#              
+#         Returns:
+#             test_labels: ndarray, das Klassenlabels spaltenweise enthaelt (d x 1).
+#          
+#             mit d Testbeispielen und t dimensionalen Merkmalsvektoren.
+#         """
+#         if self.__train_samples is None or self.__train_labels is None:
+#             raise ValueError('Classifier has not been "estimated", yet!')
+#  
+#         # distances
+#         dists = distance.cdist(test_samples, self.__train_samples, self.__metric)
+#         # nearest k neighbours
+#         nearest_k = np.argsort(dists, axis=1)[:,:self.__k_neighbors]
+#         # labels of the idcs
+#         k_labels = [self.__train_labels[n_k].reshape(-1) for n_k in nearest_k]
+#          
+#         # most frequent labels
+#         return np.array([BagOfWords.most_freq_words(k_l, n_words=1) for k_l in k_labels])
+#def classify(self, test_samples):
         """Klassifiziert Test Daten.
-        
+         
         Params:
             test_samples: ndarray, das Merkmalsvektoren zeilenweise enthaelt (d x t).
-            
+             
         Returns:
             test_labels: ndarray, das Klassenlabels spaltenweise enthaelt (d x 1).
-        
+         
             mit d Testbeispielen und t dimensionalen Merkmalsvektoren.
         """
         if self.__train_samples is None or self.__train_labels is None:
             raise ValueError('Classifier has not been "estimated", yet!')
-
-        # distances
-        dists = distance.cdist(test_samples, self.__train_samples, self.__metric)
-        # nearest k neighbours
-        nearest_k = np.argsort(dists, axis=1)[:,:self.__k_neighbors]
-        # labels of the idcs
-        k_labels = [self.__train_labels[n_k].reshape(-1) for n_k in nearest_k]
+ 
+         
+        dist_mat = distance.cdist(test_samples, self.__train_samples,self.__metric)
+        dist_mat_sort_ind = np.argsort(dist_mat, axis=1)
+        dist_mat_neighbors_ind = dist_mat_sort_ind[:, :self.__k_neighbors]
+        # dist_mat_neighbors might have more columns than self.__train_labels
+        # result will be expanded along the third dimension and has to be merged
+        # to a 2D array
+        labels_mat_neighbors = self.__train_labels[dist_mat_neighbors_ind][:, :, 0]
+        test_labels_list = []
+        for labels_neighbors in labels_mat_neighbors:
+            test_label = BagOfWords.most_freq_words(labels_neighbors.ravel(),n_words=1)[0]
+            test_labels_list.append(test_label)
+        test_labels = np.array([test_labels_list]).T
+        return test_labels
         
-        # most frequent labels
-        return np.array([BagOfWords.most_freq_words(k_l, n_words=1) for k_l in k_labels])
-
 
 class BayesClassifier(object):
 
