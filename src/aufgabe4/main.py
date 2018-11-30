@@ -53,6 +53,7 @@ def aufgabe4():
     # Vektorraum wird wieder visualisiert.
     pca_example_2d = PCAExample(samples, target_dim=2)
     pca_example_2d.plot_subspace(limits=limits_samples, color='b', linewidth=0.01, alpha=0.3)
+    plt.show()
     
     # Transformieren Sie nun die 3D Beispieldaten in den 2D Unterraum.
     # Implementieren Sie dazu die Methode transform_samples. Die Daten werden
@@ -87,9 +88,10 @@ def aufgabe4():
     # (hoechstens zur Kontrolle, achten Sie dabei auf den "bias" Parameter)
     # Verwenden Sie bei der Berechnung keine Schleifen, sondern nur Matrixoperationen.
     # Erklaeren Sie die Vorgehensweise.
-    
-    raise NotImplementedError('Implement me')
-    
+    # 1/N * Sum((x-u).T * x-u)
+    cov = lambda x : np.dot((x - np.mean(x)).T, (x - np.mean(x))) / x.shape[0]
+    cov2d = cov(samples_2d)
+    print(cov2d)    
     
     #
     # Latent Semantic Indexing
@@ -140,19 +142,25 @@ def aufgabe4():
     # Transformationsvorschrift. 
     #
     
+    
+    #   X    =    T    *    S    *    D'
+    # t x d     t x m     m x m     m x d
+    #
+    #   D'  = X / (T*S) 
       
     # Das Schaetzen eines Topic-Raums soll an folgendem einfachen Beispiel veranschaulicht
     # werden. Sei dazu bow_train eine Dokument-Term Matrix mit 9 Dokumenten und 3 Terms.
     # Welcher Zusammenhang zwischen den Terms faellt Ihnen auf? 
-    bow_train = np.array([[2, 5, 0],
-                          [4, 1, 0],
-                          [3, 3, 1],
-                          [9, 8, 2],
-                          [1, 5, 3],
-                          [0, 7, 9],
-                          [2, 9, 6],
-                          [0, 2, 3],
-                          [5, 3, 3]])
+    bow_train = np.array([[2, 5, 0], #v1
+                          [4, 1, 0], #v2
+                          [3, 3, 1], #v3
+                          [9, 8, 2], #v4
+                          [1, 5, 3], #v5
+                          [0, 7, 9], #v6
+                          [2, 9, 6], #v7
+                          [0, 2, 3], #v8
+                          [5, 3, 3]]) #v9
+    # vielfache : v3, v4 | v6, v8 | v5, v7 
     
     # Zerlegung der Dokument-Term Matrix mit der Singulaerwertzerlegung
     T, S_arr, D_ = np.linalg.svd(bow_train.T, full_matrices=False)
@@ -172,7 +180,18 @@ def aufgabe4():
                      [0, 0, 5],
                      [5, 5, 0],
                      [0, 5, 5]])
-    raise NotImplementedError('Implement me')
+    
+    #   X    =    T    *    S    *    D'
+    # t x d     t x m     m x m     m x d
+    #
+    #   D    =      X'    *   T    *    S^-1
+    # d x m       d x t     t x m     m x m
+    
+    # bow_test bereits transponiert vorliegend
+    D_bow_test = np.dot( np.dot( bow_test, T ), np.linalg.inv(S) )
+    
+    print "in den topic-Raum transponiert"
+    print D_bow_test
     
     #
     # Warum lassen sich die Koeffizienten der Termvektoren so schwer interpretieren?
@@ -180,18 +199,41 @@ def aufgabe4():
     # Um eine bessere Vorstellung von der Bedeutung der einzelnen Topics zu bekommen,
     # plotten Sie die Bag-of-Words Repraesentationen sowie die Topic-Koeffizienten der 
     # Trainingsdaten (bow_train) und der Testdaten (bow_test) in verschiedenen Farben.
+    
     # Erstellen Sie dazu jeweils einen Plot fuer Bag-of-Words Repraesentationen und einen
-    # Plot fuer Topic-Koeffizienten. Achten Sie auf eine geeignete Skalierung der Axen.
+    # Plot fuer Topic-Koeffizienten. Achten Sie auf eine geeignete Skalierung der Axen. 
+    
+    
     # Um die Datenpunkte in den beiden Plots besser einander zuordnen zu koennen, plotten
-    # Sie zusaetzlich die Termfrequenzen neben jeden Datenpunkt (als Annotation).  
+    # Sie zusaetzlich die Termfrequenzen neben jeden Datenpunkt (als Annotation).
+    
     # Mehrere Daten (Trainings-, Testdaten, Annotationen) lassen sich in einem gemeinsamen 
     # Plot darzustellen indem sie nacheinander zu dem gleichen Axis Objekt hinzugefuegt 
     # werden. Zum Erstellen der Plots orientieren Sie sich an den entsprechenden 
     # Funktionen aus dem Beispiel zur Hauptkomponentenanalyse (oben). Schauen Sie sich 
     # auch deren weitere Parameter (und zusaetzlich vorhandene Hilfsfunktionen) an. 
     
-    raise NotImplementedError('Implement me')
     
+    train_annotations = PCAExample.samples_coordinate_annotations(bow_train)
+    test_annotations = PCAExample.samples_coordinate_annotations(bow_test)
+    
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    
+    
+    print(bow_train)
+    PCAExample.plot_sample_data(bow_train , color='b', annotations=train_annotations, ax=ax)
+    PCAExample.plot_sample_data(bow_test , color='r', annotations=test_annotations, ax=ax)
+    plt.show()
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    
+    PCAExample.plot_sample_data(D_.T , color='b', annotations=train_annotations, ax=ax)
+    PCAExample.plot_sample_data(D_bow_test , color='r', annotations=test_annotations, ax=ax)
+    plt.show()
+
     #
     # Fuehren Sie nun eine Dimensionsreduktion der Trainings und Testdaten auf zwei 
     # Dimensionen durch und plotten Sie die Topic-Koeffizienten (inkl. Bag-of-Words 
@@ -202,9 +244,14 @@ def aufgabe4():
     # und plotten Sie die Koeffizienten inkl. deren Bag-of-Words Annotationen. 
     #
     
-    raise NotImplementedError('Implement me')
+    #TODO: transform to 2d
     
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
     
+    PCAExample.plot_sample_data(train_D_2d, color='b', annotations=train_annotations, ax=ax)
+    PCAExample.plot_sample_data(test_D_2d, color='r', annotations=test_annotations, ax=ax)
+    plt.show()
     
     
     #
