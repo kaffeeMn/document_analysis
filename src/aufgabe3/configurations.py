@@ -5,9 +5,10 @@ from visualization import bar_plot
 from evaluation import CrossValidation
 from classification import KNNClassifier
 
-from features import BagOfWords, WordListNormalizer, RelativeTermFrequencies, RelativeInverseDocumentWordFrequecies
+from features import BagOfWords, WordListNormalizer, RelativeTermFrequencies, RelativeInverseDocumentWordFrequecies, IdentityFeatureTransform
 
 from copy import deepcopy
+import numpy as np
 
 class Configuration(object):
     '''
@@ -51,70 +52,72 @@ class Configuration(object):
         # initializing the cross-validator (5 folds as in main)
         n_folds = 4
         self.__cross_validator = CrossValidation(category_bow_dict=rel_category_bow_dict, n_folds=n_folds)
-        
-    
-    def eval(self):
-        return self.__cross_validator.validate(self.__classifier)
-
-class ExpConfigurations:
-     
-    def __init__(self, vocabulary, cat_wordlist_dict, voc_sizes=[], weightings=[], metrices=[], neighbours=[], ):
-        self.__voc_szs = voc_sizes
-        self.__wghts = weightings
-        self.__mtrcs = metrices
-        self.__nghbrs = neighbours
-         
-        self.__log = ["size", "weighting", "metric", "n_neighbours", "error"]
-        self.__classifier = None
-        self.__bow = None
-         
-        self.__vocab = vocabulary
-        self.cat_wordlist_dict = cat_wordlist_dict
-         
-         
-    def run(self):
-        # all possible configurations
-        for vs in self.__voc_szs:
-            for wght in self.__wghts:
-                for metric in self.__mtrcs:
-                    for nn in self.__nghbrs:
-                        # adding to the log
-                        self.__classifier = KNNClassifier(nn, metric)
-                        self.__log.append([vs, wght, metric, nn,
-                                           self.eval(vs, wght)])
-        # best result
-        return self.best()
-     
-     
-    def eval(self, vocab_size, weighting):
-        # bow
-        self.__bow = BagOfWords(self.__vocab[:vocab_size])
-        category_bow_dict = self.__bow.category_bow_dict(self.cat_wordlist_dict)
-        
-        # weighting function
-        if weighting == 'abs':
-            wght = lambda x : x
-        elif weighting == 'rel':
-            wght = RelativeTermFrequencies.weighting
-        elif weighting == 'tfidf':
-            tfidf = RelativeInverseDocumentWordFrequecies(self.__vocab, self.cat_wordlist_dict)
-            wght = tfidf.weighting
-        
-        
-        wght_category_bow_dict = {cat : wght(category_bow_dict[cat])
-                                 for cat in category_bow_dict}
-        n_folds = 5
-        
-        c_val = CrossValidation(category_bow_dict=wght_category_bow_dict, n_folds=n_folds)
-        return c_val.validate(self.__classifier)
     
     
-    def best(self):
-        res = self.__log[1:]
-        if res:
-            best = deepcopy(res[0])
-            for r in res[1:]:
-                if best[4][0] > r[4][0]:
-                    best = deepcopy(r)
-            return best
-        return None
+    def eval(self,feature_trans=None):
+        if feature_trans is None:
+            feature_trans = IdentityFeatureTransform()
+        return self.__cross_validator.validate(self.__classifier, feature_transform=feature_trans)
+# 
+# class ExpConfigurations:
+#      
+#     def __init__(self, vocabulary, cat_wordlist_dict, voc_sizes=[], weightings=[], metrices=[], neighbours=[], ):
+#         self.__voc_szs = voc_sizes
+#         self.__wghts = weightings
+#         self.__mtrcs = metrices
+#         self.__nghbrs = neighbours
+#          
+#         self.__log = ["size", "weighting", "metric", "n_neighbours", "error"]
+#         self.__classifier = None
+#         self.__bow = None
+#          
+#         self.__vocab = vocabulary
+#         self.cat_wordlist_dict = cat_wordlist_dict
+#          
+#          
+#     def run(self):
+#         # all possible configurations
+#         for vs in self.__voc_szs:
+#             for wght in self.__wghts:
+#                 for metric in self.__mtrcs:
+#                     for nn in self.__nghbrs:
+#                         # adding to the log
+#                         self.__classifier = KNNClassifier(nn, metric)
+#                         self.__log.append([vs, wght, metric, nn,
+#                                            self.eval(vs, wght)])
+#         # best result
+#         return self.best()
+#      
+#      
+#     def eval(self, vocab_size, weighting):
+#         # bow
+#         self.__bow = BagOfWords(self.__vocab[:vocab_size])
+#         category_bow_dict = self.__bow.category_bow_dict(self.cat_wordlist_dict)
+#         
+#         # weighting function
+#         if weighting == 'abs':
+#             wght = lambda x : x
+#         elif weighting == 'rel':
+#             wght = RelativeTermFrequencies.weighting
+#         elif weighting == 'tfidf':
+#             tfidf = RelativeInverseDocumentWordFrequecies(self.__vocab, self.cat_wordlist_dict)
+#             wght = tfidf.weighting
+#         
+#         
+#         wght_category_bow_dict = {cat : wght(category_bow_dict[cat])
+#                                  for cat in category_bow_dict}
+#         n_folds = 5
+#         
+#         c_val = CrossValidation(category_bow_dict=wght_category_bow_dict, n_folds=n_folds)
+#         return c_val.validate(self.__classifier)
+#     
+#     
+#     def best(self):
+#         res = self.__log[1:]
+#         if res:
+#             best = deepcopy(res[0])
+#             for r in res[1:]:
+#                 if best[4][0] > r[4][0]:
+#                     best = deepcopy(r)
+#             return best
+#         return None

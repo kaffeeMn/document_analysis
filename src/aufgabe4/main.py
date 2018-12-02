@@ -3,9 +3,13 @@ from aufgabe4.pca import PCAExample
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # IGNORE:unused-import
 import numpy as np
-from features import WordListNormalizer, BagOfWords
+from features import WordListNormalizer, BagOfWords, TopicFeatureTransform
 import itertools
 from corpus import CorpusLoader
+from classification import KNNClassifier
+
+from aufgabe3.configurations import Configuration
+from StdSuites.AppleScript_Suite import result
 
 def aufgabe4():
     
@@ -244,10 +248,15 @@ def aufgabe4():
     # und plotten Sie die Koeffizienten inkl. deren Bag-of-Words Annotationen. 
     #
     
-    #TODO: transform to 2d
+    train_D_2d = np.dot( np.dot( bow_train, T[:,:2] ), np.linalg.inv(S[:2,:2]) )
+    print(train_D_2d.shape)
     
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    test_D_2d = np.dot( np.dot( bow_test, T[:,:2] ), np.linalg.inv(S[:2,:2]) )
+    print(test_D_2d.shape)
+    
+    
+    plt.rcdefaults()
+    fig, ax = plt.subplots()
     
     PCAExample.plot_sample_data(train_D_2d, color='b', annotations=train_annotations, ax=ax)
     PCAExample.plot_sample_data(test_D_2d, color='r', annotations=test_annotations, ax=ax)
@@ -274,11 +283,57 @@ def aufgabe4():
     # Optional: Passen Sie das Suchgrid dynamisch gemaess der Ergebnisse in den einzelnen
     # Wertebereichen an.
 
+    #parameters
+    n_neighbours = 4
+    metrices = ("cityblock", "euclidean", "cosine")
+    voc_size = 2000
+    weighting = 'rel'
+    
     CorpusLoader.load()
     brown = CorpusLoader.brown_corpus()
     
-    raise NotImplementedError('Implement me')
+    # normalizing words
+    normalizer = WordListNormalizer()
+    cat_wordlist_dict = normalizer.category_wordlists_dict(corpus=brown)
+    wordlists = itertools.chain( *(cat_wordlist_dict.itervalues()) )
+    normalized_words = itertools.chain(*wordlists)
+    vocab = BagOfWords.most_freq_words(normalized_words)
     
+    # evaluating
+    results = []
+    mins = []
+    mins_mtc = []
+    n_cats = len(brown.categories())
+    print('evaluating for 1-{} dimensions'.format(n_cats+1))
+    for t_dim in range(1, n_cats+1):
+        # initializing the transformation
+        topic_trans = TopicFeatureTransform(t_dim)
+        # with different metrices
+        for metric in metrices:
+            config = Configuration(brown, cat_wordlist_dict, vocab,
+                                   voc_size, metric, n_neighbours, 
+                                   weighting)
+            config.fit()
+            results.append([metric, 'dim={}'.format(t_dim)] + list(config.eval(feature_trans=topic_trans)))
+        # logging the best metric 
+        tmp_min_idx = len(results)-3
+        for rel_idx, r in enumerate(results[-3:]):
+            if results[tmp_min_idx][2] > r[2]:
+                tmp_min_idx = len(results)-3 + rel_idx
+        mins.append(results[tmp_min_idx][2])
+        mins_mtc.append(results[tmp_min_idx][0])
+        
+    # displaying the results
+    for res in results:
+        print('{},{}:\t{}'.format(res[0],res[1],res[2:]))
+    
+    plt.rcdefaults()
+    fig, ax = plt.subplots()
+    plt.plot(range(1,16), mins)
+    # annotating the best metric
+    for i in range(len(mins_mtc)):
+        ax.annotate(mins_mtc[i], xy=(i+1, mins[i]))
+    plt.show()
     
 if __name__ == '__main__':
     aufgabe4()
