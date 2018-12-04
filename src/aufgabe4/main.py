@@ -9,7 +9,7 @@ from corpus import CorpusLoader
 from classification import KNNClassifier
 
 from aufgabe3.configurations import Configuration
-from StdSuites.AppleScript_Suite import result
+#from StdSuites.AppleScript_Suite import result
 
 def aufgabe4():
     
@@ -305,7 +305,11 @@ def aufgabe4():
     mins_mtc = []
     n_cats = len(brown.categories())
     print('evaluating for 1-{} dimensions'.format(n_cats+1))
-    for t_dim in range(1, n_cats+1):
+   
+    max_dim = 102
+    step = 10
+    
+    for t_dim in range(1, max_dim, step):
         # initializing the transformation
         topic_trans = TopicFeatureTransform(t_dim)
         # with different metrices
@@ -329,10 +333,10 @@ def aufgabe4():
     
     plt.rcdefaults()
     fig, ax = plt.subplots()
-    plt.plot(range(1,16), mins)
+    plt.plot(range(1,max_dim,step), mins)
     # annotating the best metric
     for i in range(len(mins_mtc)):
-        ax.annotate(mins_mtc[i], xy=(i+1, mins[i]))
+        ax.annotate(mins_mtc[i], xy=((i+1)*step - 9, mins[i]))
     plt.show()
     
 if __name__ == '__main__':

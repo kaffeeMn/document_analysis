@@ -11,8 +11,10 @@ import matplotlib
 import cPickle as pickle
 from scipy.cluster.vq import kmeans2
 from scipy.spatial.distance import cdist
+from scipy.signal import correlate2d
 from matplotlib.patches import Circle, Rectangle
 from matplotlib.lines import Line2D
+from matplotlib.colors import hsv_to_rgb
 
 def aufgabe6():
 
@@ -43,24 +45,26 @@ def aufgabe6():
     # man die Deskriptoren an den Punkten eines regelmaessigen Grids.
     # Jedem Deskriptor wird nun das aehnlichste Visual Word aus dem Visual Vocabulary
     # zugeordnet. Dies bezeichnet man als Quantisierung.
-    # Die Bag-of-Features wird bildet indem man das Histgramm ueber die Visual Words
+    # Die Bag-of-Features wird gebildet, indem man das Histgramm ueber die Visual Words
     # in dem Bild bzw in einem Bildausschnitt berechnet. 
     #  
     # Erlaeutern Sie die Begriffe Visual Word und Visual Vocabulary mit Ihren eigenen
     # Worten. Stellen Sie die Analogie zwischen Bag-of-Words und Bag-of-Features
-    # her:
+    # hier:
     #
+    
     # Bag-of-Words               Bag-of-Features
-    # Wort                  ->   
-    # typische Wortstaemme  ->   
-    #
-    #
-    raise NotImplementedError('Implement me')
+    # Wort                  ->   Cluster-Repraesentaten (Typische Auspraegungen des Clusters) bilden das
+    #                            Visual-Vocabulary
+    # typische Wortstaemme  ->   typische lokale Bilddeskriptoren
+   
+    
     #
     # Welche Rolle spielt die Anordung der lokalen Bilddeskriptoren im regelmaessigen
     # Grid?
     #
     
+    # Hypothese: Wenn der Grid zu grob ist kann das spliten eines Clusters/ Wortes/ Bildeskriptors zu Problemen fuehren
 
 
     #
@@ -72,6 +76,7 @@ def aufgabe6():
     # (siehe auch Vorlesung Computer Vision)
     # Das SIFT Verfahren besteht aus einem Schritt zur Detektion 'interessanter' 
     # lokaler Bildpunkte und einem Schritt zu deren Beschreibung (Deskriptor).
+    #
     # Da wir die Deskriptoren in einem regelmaessigen Grid berechnen werden, wird 
     # der Detektor hier nicht verwendet. 
     # Der Deskriptor basiert auf Statistiken (Histogrammen) von (lokalen) Bildgradienten.
@@ -87,7 +92,13 @@ def aufgabe6():
     # -1 0 1 
     # Wie kann man die Randfaelle behandeln?
     # Diskutieren Sie Eigenschaften und Funktion des Filters (Hochpass).
-    raise NotImplementedError('Implement me')
+    
+    
+    # Behandlung der Ranfaelle: Naiv -> Werte bleiben gleich
+    #
+    # 0 0 0 1 2 3 4 5  0  0 9 3  0   0
+    # unter anwendung der Maske
+    # 0 0 1 2 2 2 2 -4 -5 9 3 -9 -3  0
     
     #
     # Der Operator laesst sich auf zweidimensionale diskrete Signale verallgemeinern.
@@ -96,16 +107,37 @@ def aufgabe6():
     # Zeigen Sie wie beide Masken durch geeignete Multiplikationen der Vektoren
     # [ -1 0 1] und [1 1 1] gebildet werden koennen. Es resultiert der sogenannte
     # Prewitt Operator.
+    
+    # multiplikationen der Vektoren 
+    # h:
+    #                          [[-1 -1 -1]
+    # [-1  0  1]' * [1  1  1] = [0   0  0]
+    #                           [1   1  1]]
     #
-    raise NotImplementedError('Implement me')
+    # v:
+    #                           [[-1 0 1]
+    # [1  1  1]' * [-1  0  1]  = [-1 0 1]
+    #                            [-1 0 1]]
+    
     #
     # In der Praxis konstruiert man den Operator haeufig mit dem Tiefpass Filter
     # [1 2 1]
     # Dabei ergibt sich der Sobel Operator. 
     # Berechnen Sie beide Masken des Sobel Operators. 
     # Diskutieren Sie den Unterschied zwischen Prewitt und Sobel.
-    raise NotImplementedError('Implement me')
+    
+    
+    # multiplikationen der Vektoren 
+    # h:
+    #                          [[-1 -2 -1]
+    # [-1  0  1]' * [1  2  1] = [0   0  0]
+    #                           [1   2  1]]
     #
+    # v:
+    #                           [[-1 0 1]
+    # [1  2  1]' * [-1  0  1]  = [-2 0 2]
+    #                            [-1 0 1]]
+    
     
     # 
     # An folgendem Dokumentenabbild sollen der Sobel-Operator, lokale Bilddeskriptoren
@@ -123,6 +155,13 @@ def aufgabe6():
     plt.imshow(im_arr, cmap=cm.get_cmap('Greys_r'))
     plt.show()
     
+    # higher definition
+#     document_image_filename_hd = '2700270.png'
+#     image_hd = Image.open(document_image_filename_hd)
+#     # Fuer spaeter folgende Verarbeitungsschritte muss das Bild mit float32-Werten vorliegen. 
+#     im_arr_hd = np.asarray(image_hd, dtype='float32')
+#     # Die colormap legt fest wie die Intensitaetswerte interpretiert werden.
+    
     #
     # Berechnen Sie das Ergebnis des Sobel-Operators mit der horizontalen und
     # vertikalen Maske. Visualisieren Sie die Ergebnisse und achten Sie
@@ -132,8 +171,20 @@ def aufgabe6():
     # http://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.correlate2d.html
     # verwenden. 
     #
+    sobel_v = np.array([[-1, 0, 1],
+                        [-2, 0, 1],
+                        [-1, 0, 1]]).astype(np.float32)
+    sobel_h = np.array([[-1, -2, -1],
+                        [0, 0, 0],
+                        [1, 2, 1]]).astype(np.float32)
     
-    raise NotImplementedError('Implement me')
+    G_x = correlate2d(im_arr, sobel_v, mode='same', boundary='symm')
+    G_y = correlate2d(im_arr, sobel_h, mode='same', boundary='symm')
+    
+    plt.imshow(G_x, cmap=cm.get_cmap('Greys_r'))
+    plt.show()
+    plt.imshow(G_y, cmap=cm.get_cmap('Greys_r'))
+    plt.show()
     
     #
     # Berechnen Sie nun die (approx.) Gradienten Magnituden und Orientierungen.
@@ -148,23 +199,36 @@ def aufgabe6():
     #
     # - Berechnen Sie die Orientierungen im Bogenmass. Verwenden Sie dabei
     #   numpy.arctan2 
+    
+    G_mag = np.sqrt(G_x**2 + G_y**2)
+    # arctan G_y/G_x
+    #G_dir = np.arctan2(np.dot(G_y, np.linalg.inv(G_x)))
+    G_dir = np.arctan2(G_y, G_x)
+    
     #   http://docs.scipy.org/doc/numpy/reference/generated/numpy.arctan2.html
     # - Normalisieren Sie die Orientierungen im Bogenmass in das Intervall [0, 1]
+  
+    # G_dir, G_mag should be positive
+    G_dir_norm = G_dir / np.amax(G_dir)
+    
     # - Erstellen Sie ein NumPy Array der Form (M,N,3) wobei M die Anzahl Zeilen 
     #   und N die Anzahl Spalten bezeichnet. Setzen Sie alle Werte auf 1. Verwenden
     #   Sie eine float Datentyp.
     #   http://docs.scipy.org/doc/numpy/reference/generated/numpy.ones.html
+    img_hsv = np.ones(G_dir_norm.shape[:2] + (3,), dtype=np.float32)
     # - Schreiben Sie die normalisierten Orientierungen in den ersten Kanal des 
     #   zuvor erstellen Arrays. Indizieren Sie das Array dazu mit [:,:,0].
+    img_hsv[:,:,0] = G_dir_norm
     # - Konvertieren Sie das Bild aus dem HSV Farbraum in den RGB Farbraum. Dieser
     #   Farbraum wird standardmaessig in matplotlib verwendet.
     #   http://de.wikipedia.org/wiki/RGB-Farbraum
     #   Verwenden Sie fuer die Konvertierung die Funktion
     #   http://matplotlib.org/api/colors_api.html#matplotlib.colors.hsv_to_rgb
+    img_rgb_dir = hsv_to_rgb(img_hsv)
     # - Visualisieren Sie das RGB Bild
     #
-
-    raise NotImplementedError('Implement me')
+    plt.imshow(img_rgb_dir)
+    plt.show()
     
     #
     # Erstellen Sie abschliessend eine gemeinsame Visulisierung der Magnituden 
@@ -178,7 +242,25 @@ def aufgabe6():
     # Bildpunkt sichtbar gemacht werden.
     #
     
-    raise NotImplementedError('Implement me')
+    # G_mag
+    G_mag_norm = G_mag / np.amax(G_mag)
+    img_hsv = np.zeros(G_mag_norm.shape[:2] + (3,), dtype=np.float32)
+    # write in V
+    img_hsv[:,:,2] = G_mag_norm
+    img_rgb_mag = hsv_to_rgb(img_hsv)
+    
+    plt.imshow(img_rgb_mag)
+    plt.show()
+    
+    # both
+    img_hsv = np.ones(G_dir_norm.shape[:2] + (3,), dtype=np.float32)
+    img_hsv[:,:,0] = G_dir_norm
+    img_hsv[:,:,2] = G_mag_norm
+    img_hsv[:,:,2] = G_mag_norm
+    img_rgb_both = hsv_to_rgb(img_hsv)
+    
+    plt.imshow(img_rgb_both)
+    plt.show()
     
     
     #
